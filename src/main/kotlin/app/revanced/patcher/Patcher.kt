@@ -74,7 +74,7 @@ class Patcher(private val options: PatcherOptions) {
         try {
             var jsonString = File(resolverHintsFileName).readText()
             MethodFingerprint.fingerprintNameToClassName.putAll(Gson().fromJson(jsonString, object : TypeToken<Map<String, String>>() {}.type))
-            logger.info("Resolving classes cached lookup hints")
+            logger.info("Resolving classes using cached lookup hints")
         } catch (ioException: IOException) {
             logger.info("Resolving classes using no hints")
         }
