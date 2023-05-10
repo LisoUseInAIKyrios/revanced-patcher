@@ -5,8 +5,14 @@ import app.revanced.patcher.extensions.PatchExtensions.dependencies
 import app.revanced.patcher.extensions.PatchExtensions.patchName
 import app.revanced.patcher.extensions.PatchExtensions.requiresIntegrations
 import app.revanced.patcher.extensions.nullOutputStream
+import app.revanced.patcher.fingerprint.method.impl.MethodFingerprint
 import app.revanced.patcher.fingerprint.method.impl.MethodFingerprint.Companion.resolve
-import app.revanced.patcher.patch.*
+import app.revanced.patcher.patch.BytecodePatch
+import app.revanced.patcher.patch.Patch
+import app.revanced.patcher.patch.PatchResult
+import app.revanced.patcher.patch.PatchResultError
+import app.revanced.patcher.patch.PatchResultSuccess
+import app.revanced.patcher.patch.ResourcePatch
 import app.revanced.patcher.util.VersionReader
 import brut.androlib.Androlib
 import brut.androlib.meta.UsesFramework
@@ -18,6 +24,8 @@ import brut.androlib.res.decoder.ResAttrDecoder
 import brut.androlib.res.decoder.XmlPullStreamDecoder
 import brut.androlib.res.xml.ResXmlPatcher
 import brut.directory.ExtFile
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import lanchon.multidexlib2.BasicDexFileNamer
 import lanchon.multidexlib2.DexIO
 import lanchon.multidexlib2.MultiDexIO
@@ -25,6 +33,7 @@ import org.jf.dexlib2.Opcodes
 import org.jf.dexlib2.iface.DexFile
 import org.jf.dexlib2.writer.io.MemoryDataStore
 import java.io.File
+import java.io.IOException
 import java.nio.file.Files
 
 internal val NAMER = BasicDexFileNamer()
@@ -34,6 +43,8 @@ internal val NAMER = BasicDexFileNamer()
  * @param options The options for the patcher.
  */
 class Patcher(private val options: PatcherOptions) {
+    private val resolverHintsFileName = "resolver_hints.json"
+
     private val logger = options.logger
     private val opcodes: Opcodes
     private var resourceDecodingMode = ResourceDecodingMode.MANIFEST_ONLY
@@ -57,7 +68,15 @@ class Patcher(private val options: PatcherOptions) {
         // get the opcodes
         opcodes = dexFile.opcodes
         // finally create patcher context
-        context = PatcherContext(dexFile.classes.toMutableList(), File(options.resourceCacheDirectory))
+        context = PatcherContext(dexFile.classes.associateBy { it.type }.toMutableMap(), File(options.resourceCacheDirectory))
+
+        // load optional resolver hints
+        try {
+            var jsonString = File(resolverHintsFileName).readText()
+            MethodFingerprint.fingerprintNameToClassName.putAll(Gson().fromJson(jsonString, object : TypeToken<Map<String, String>>() {}.type))
+        } catch (ioException: IOException) {
+            ioException.printStackTrace()
+        }
 
         // decode manifest file
         decodeResources(ResourceDecodingMode.MANIFEST_ONLY)
@@ -270,7 +289,9 @@ class Patcher(private val options: PatcherOptions) {
      * @param stopOnError If true, the patches will stop on the first error.
      * @return A pair of the name of the [Patch] and its [PatchResult].
      */
-    fun executePatches(stopOnError: Boolean = false): Sequence<Pair<String, Result<PatchResultSuccess>>> {
+    fun executePatches(
+        stopOnError: Boolean = false
+    ): Sequence<Pair<String, Result<PatchResultSuccess>>> {
         /**
          * Execute a [Patch] and its dependencies recursively.
          *
@@ -359,6 +380,13 @@ class Patcher(private val options: PatcherOptions) {
                     if (stopOnError && patchResult.isError()) return@sequence
                 }
             } finally {
+                try {
+                    val file = File(resolverHintsFileName)
+                    file.writeText(Gson().toJson(MethodFingerprint.fingerprintNameToClassName))
+                } catch (ex: IOException) {
+                    ex.printStackTrace()
+                }
+
                 executedPatches.values.reversed().forEach { (patch, _) ->
                     patch.close()
                 }

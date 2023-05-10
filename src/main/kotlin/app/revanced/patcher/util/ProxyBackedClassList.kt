@@ -8,13 +8,15 @@ import org.jf.dexlib2.iface.ClassDef
  *
  * @param classes The classes to be backed by proxies.
  */
-class ProxyBackedClassList(internal val classes: MutableList<ClassDef>) : Set<ClassDef> {
+class ProxyBackedClassList(internal val classes: MutableMap<String, ClassDef>) : Set<ClassDef> {
     internal val proxies = mutableListOf<ClassProxy>()
 
     /**
      * Add a [ClassDef].
      */
-    fun add(classDef: ClassDef) = classes.add(classDef)
+    fun add(classDef: ClassDef) {
+        classes[classDef.type] = classDef
+    }
 
     /**
      * Add a [ClassProxy].
@@ -30,8 +32,7 @@ class ProxyBackedClassList(internal val classes: MutableList<ClassDef>) : Set<Cl
             if (!proxy.resolved) return@removeIf false
 
             // if it has been used, replace the original class with the new class
-            val index = classes.indexOfFirst { it.type == proxy.immutableClass.type }
-            classes[index] = proxy.mutableClass
+            classes[proxy.immutableClass.type] = proxy.immutableClass
 
             // return true to remove it from the proxies list
             return@removeIf true
@@ -39,8 +40,8 @@ class ProxyBackedClassList(internal val classes: MutableList<ClassDef>) : Set<Cl
 
 
     override val size get() = classes.size
-    override fun contains(element: ClassDef) = classes.contains(element)
-    override fun containsAll(elements: Collection<ClassDef>) = classes.containsAll(elements)
+    override fun contains(element: ClassDef) = classes.containsValue(element)
+    override fun containsAll(elements: Collection<ClassDef>) = classes.values.containsAll(elements)
     override fun isEmpty() = classes.isEmpty()
-    override fun iterator() = classes.iterator()
+    override fun iterator(): Iterator<ClassDef> = classes.values.iterator()
 }

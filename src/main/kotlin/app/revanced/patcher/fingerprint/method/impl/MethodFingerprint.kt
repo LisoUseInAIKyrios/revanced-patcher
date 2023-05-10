@@ -3,6 +3,7 @@ package app.revanced.patcher.fingerprint.method.impl
 import app.revanced.patcher.data.BytecodeContext
 import app.revanced.patcher.extensions.MethodFingerprintExtensions.fuzzyPatternScanMethod
 import app.revanced.patcher.extensions.MethodFingerprintExtensions.fuzzyScanThreshold
+import app.revanced.patcher.extensions.MethodFingerprintExtensions.name
 import app.revanced.patcher.extensions.parametersEqual
 import app.revanced.patcher.fingerprint.Fingerprint
 import app.revanced.patcher.fingerprint.method.annotation.FuzzyPatternScanMethod
@@ -14,6 +15,7 @@ import org.jf.dexlib2.iface.instruction.Instruction
 import org.jf.dexlib2.iface.instruction.ReferenceInstruction
 import org.jf.dexlib2.iface.reference.StringReference
 import org.jf.dexlib2.util.MethodUtil
+import java.util.Collections
 
 /**
  * Represents the [MethodFingerprint] for a method.
@@ -39,6 +41,8 @@ abstract class MethodFingerprint(
     var result: MethodFingerprintResult? = null
 
     companion object {
+        var fingerprintNameToClassName: MutableMap<String, String> = Collections.emptyMap<String?, String?>().toMutableMap()
+
         /**
          * Resolve a list of [MethodFingerprint] against a list of [ClassDef].
          *
@@ -46,11 +50,27 @@ abstract class MethodFingerprint(
          * @param context The [BytecodeContext] to host proxies.
          * @return True if the resolution was successful, false otherwise.
          */
-        fun Iterable<MethodFingerprint>.resolve(context: BytecodeContext, classes: Iterable<ClassDef>) {
-            for (fingerprint in this) // For each fingerprint
-                classes@ for (classDef in classes) // search through all classes for the fingerprint
-                    if (fingerprint.resolve(context, classDef))
+        fun Iterable<MethodFingerprint>.resolve(context: BytecodeContext, classes: Map<String, ClassDef>) {
+            for (fingerprint in this) { // For each fingerprint
+                val fingerprintResolvedClassName = fingerprintNameToClassName[fingerprint.name]
+                if (fingerprintResolvedClassName != null) {
+                    val hintedClassType = classes[fingerprintResolvedClassName]
+                    if (hintedClassType != null) {
+                        if (fingerprint.resolve(context, hintedClassType)) {
+                            continue
+                        }
+                    }
+                }
+
+                // hinted class did not match, search thru everything
+                classes@ for (classDef in classes) { // search through all classes for the fingerprint
+                    val classDefValue = classDef.value
+                    if (fingerprint.resolve(context, classDefValue)) {
+                        fingerprintNameToClassName[fingerprint.name] = classDefValue.type
                         break@classes // if the resolution succeeded, continue with the next fingerprint
+                    }
+                }
+            }
         }
 
         /**

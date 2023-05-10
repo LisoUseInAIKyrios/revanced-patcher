@@ -1,6 +1,9 @@
 package app.revanced.patcher
 
-import app.revanced.patcher.data.*
+import app.revanced.patcher.data.BytecodeContext
+import app.revanced.patcher.data.Context
+import app.revanced.patcher.data.PackageMetadata
+import app.revanced.patcher.data.ResourceContext
 import app.revanced.patcher.logging.Logger
 import app.revanced.patcher.patch.Patch
 import app.revanced.patcher.util.ClassMerger.merge
@@ -8,7 +11,7 @@ import org.jf.dexlib2.iface.ClassDef
 import java.io.File
 
 data class PatcherContext(
-    val classes: MutableList<ClassDef>,
+    val classes: MutableMap<String, ClassDef>,
     val resourceCacheDirectory: File,
 ) {
     val packageMetadata = PackageMetadata()
@@ -40,21 +43,19 @@ data class PatcherContext(
                         null
                     ).classes) {
                         val type = classDef.type
-
-                        val result = classes.findIndexed { it.type == type }
-                        if (result == null) {
+                        val existingClass = classes[type]
+                        if (existingClass == null) {
                             logger.trace("Merging type $type")
-                            classes.add(classDef)
+                            classes[classDef.type] = classDef
                             continue
                         }
 
-                        val (existingClass, existingClassIndex) = result
-
                         logger.trace("Type $type exists. Adding missing methods and fields.")
 
-                        existingClass.merge(classDef, context, logger).let { mergedClass ->
-                            if (mergedClass !== existingClass) // referential equality check
-                                classes[existingClassIndex] = mergedClass
+                        existingClass.merge(classDef, context, logger).let { mergedClass : ClassDef ->
+                            if (mergedClass !== existingClass) { // referential equality check
+                                classes[mergedClass.type] = mergedClass
+                            }
                         }
                     }
                 }

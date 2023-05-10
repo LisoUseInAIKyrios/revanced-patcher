@@ -20,7 +20,7 @@ import javax.xml.transform.stream.StreamResult
 
 sealed interface Context
 
-class BytecodeContext internal constructor(classes: MutableList<ClassDef>) : Context {
+class BytecodeContext internal constructor(classes: MutableMap<String, ClassDef>) : Context {
     /**
      * The list of classes.
      */
