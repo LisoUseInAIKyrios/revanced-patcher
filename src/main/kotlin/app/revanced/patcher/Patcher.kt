@@ -74,8 +74,9 @@ class Patcher(private val options: PatcherOptions) {
         try {
             var jsonString = File(resolverHintsFileName).readText()
             MethodFingerprint.fingerprintNameToClassName.putAll(Gson().fromJson(jsonString, object : TypeToken<Map<String, String>>() {}.type))
+            logger.info("Resolving classes cached lookup hints")
         } catch (ioException: IOException) {
-            ioException.printStackTrace()
+            logger.info("Resolving classes using no hints")
         }
 
         // decode manifest file
