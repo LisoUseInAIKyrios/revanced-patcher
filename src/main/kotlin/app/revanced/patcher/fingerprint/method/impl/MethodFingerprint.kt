@@ -50,11 +50,11 @@ abstract class MethodFingerprint(
          * @param context The [BytecodeContext] to host proxies.
          * @return True if the resolution was successful, false otherwise.
          */
-        fun Iterable<MethodFingerprint>.resolve(context: BytecodeContext, classes: Map<String, ClassDef>) {
+        fun Iterable<MethodFingerprint>.resolve(context: BytecodeContext, classes: Iterable<ClassDef>) {
             for (fingerprint in this) { // For each fingerprint
                 val fingerprintResolvedClassName = fingerprintNameToClassName[fingerprint.name]
                 if (fingerprintResolvedClassName != null) {
-                    val hintedClassType = classes[fingerprintResolvedClassName]
+                    val hintedClassType = classes.firstOrNull { classDef -> classDef.type == fingerprintResolvedClassName  }
                     if (hintedClassType != null) {
                         if (fingerprint.resolve(context, hintedClassType)) {
                             continue
@@ -64,9 +64,8 @@ abstract class MethodFingerprint(
 
                 // hinted class did not match, search thru everything
                 classes@ for (classDef in classes) { // search through all classes for the fingerprint
-                    val classDefValue = classDef.value
-                    if (fingerprint.resolve(context, classDefValue)) {
-                        fingerprintNameToClassName[fingerprint.name] = classDefValue.type
+                    if (fingerprint.resolve(context, classDef)) {
+                        fingerprintNameToClassName[fingerprint.name] = classDef.type
                         break@classes // if the resolution succeeded, continue with the next fingerprint
                     }
                 }

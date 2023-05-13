@@ -68,11 +68,11 @@ class Patcher(private val options: PatcherOptions) {
         // get the opcodes
         opcodes = dexFile.opcodes
         // finally create patcher context
-        context = PatcherContext(dexFile.classes.associateBy { it.type }.toMutableMap(), File(options.resourceCacheDirectory))
+        context = PatcherContext(dexFile.classes.toMutableList(), File(options.resourceCacheDirectory))
 
         // load optional resolver hints
         try {
-            var jsonString = File(resolverHintsFileName).readText()
+            val jsonString = File(resolverHintsFileName).readText()
             MethodFingerprint.fingerprintNameToClassName.putAll(Gson().fromJson(jsonString, object : TypeToken<Map<String, String>>() {}.type))
             logger.info("Resolving classes using cached lookup hints")
         } catch (ioException: IOException) {
