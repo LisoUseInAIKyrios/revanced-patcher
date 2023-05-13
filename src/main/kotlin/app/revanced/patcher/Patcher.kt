@@ -290,9 +290,7 @@ class Patcher(private val options: PatcherOptions) {
      * @param stopOnError If true, the patches will stop on the first error.
      * @return A pair of the name of the [Patch] and its [PatchResult].
      */
-    fun executePatches(
-        stopOnError: Boolean = false
-    ): Sequence<Pair<String, Result<PatchResultSuccess>>> {
+    fun executePatches(stopOnError: Boolean = false): Sequence<Pair<String, Result<PatchResultSuccess>>> {
         /**
          * Execute a [Patch] and its dependencies recursively.
          *
