@@ -3,7 +3,6 @@ package app.revanced.patcher.fingerprint.method.impl
 import app.revanced.patcher.data.BytecodeContext
 import app.revanced.patcher.extensions.MethodFingerprintExtensions.fuzzyPatternScanMethod
 import app.revanced.patcher.extensions.MethodFingerprintExtensions.fuzzyScanThreshold
-import app.revanced.patcher.extensions.MethodFingerprintExtensions.name
 import app.revanced.patcher.extensions.parametersEqual
 import app.revanced.patcher.fingerprint.Fingerprint
 import app.revanced.patcher.fingerprint.method.annotation.FuzzyPatternScanMethod
@@ -41,7 +40,7 @@ abstract class MethodFingerprint(
     var result: MethodFingerprintResult? = null
 
     companion object {
-        var fingerprintNameToClassName: MutableMap<String, String> = Collections.emptyMap<String?, String?>().toMutableMap()
+        var fingerprintNameToClassName: MutableMap<String, String> = Collections.emptyMap<String, String>().toMutableMap()
 
         /**
          * Resolve a list of [MethodFingerprint] against a list of [ClassDef].
@@ -52,7 +51,8 @@ abstract class MethodFingerprint(
          */
         fun Iterable<MethodFingerprint>.resolve(context: BytecodeContext, classes: Iterable<ClassDef>) {
             for (fingerprint in this) { // For each fingerprint
-                val fingerprintResolvedClassName = fingerprintNameToClassName[fingerprint.name]
+                val cacheFingerprintKey = fingerprint.javaClass.name
+                val fingerprintResolvedClassName = fingerprintNameToClassName[cacheFingerprintKey]
                 if (fingerprintResolvedClassName != null) {
                     val hintedClassType = classes.firstOrNull { classDef -> classDef.type == fingerprintResolvedClassName  }
                     if (hintedClassType != null) {
@@ -65,7 +65,7 @@ abstract class MethodFingerprint(
                 // hinted class did not match, search thru everything
                 classes@ for (classDef in classes) { // search through all classes for the fingerprint
                     if (fingerprint.resolve(context, classDef)) {
-                        fingerprintNameToClassName[fingerprint.name] = classDef.type
+                        fingerprintNameToClassName[cacheFingerprintKey] = classDef.type
                         break@classes // if the resolution succeeded, continue with the next fingerprint
                     }
                 }

@@ -25,6 +25,7 @@ import brut.androlib.res.decoder.XmlPullStreamDecoder
 import brut.androlib.res.xml.ResXmlPatcher
 import brut.directory.ExtFile
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import lanchon.multidexlib2.BasicDexFileNamer
 import lanchon.multidexlib2.DexIO
@@ -71,13 +72,7 @@ class Patcher(private val options: PatcherOptions) {
         context = PatcherContext(dexFile.classes.toMutableList(), File(options.resourceCacheDirectory))
 
         // load optional resolver hints
-        try {
-            val jsonString = File(resolverHintsFileName).readText()
-            MethodFingerprint.fingerprintNameToClassName.putAll(Gson().fromJson(jsonString, object : TypeToken<Map<String, String>>() {}.type))
-            logger.info("Resolving classes using cached lookup hints")
-        } catch (ioException: IOException) {
-            logger.info("Resolving classes using no hints")
-        }
+        loadCachedResolverHints()
 
         // decode manifest file
         decodeResources(ResourceDecodingMode.MANIFEST_ONLY)
@@ -379,17 +374,48 @@ class Patcher(private val options: PatcherOptions) {
                     if (stopOnError && patchResult.isError()) return@sequence
                 }
             } finally {
-                try {
-                    val file = File(resolverHintsFileName)
-                    file.writeText(Gson().toJson(MethodFingerprint.fingerprintNameToClassName))
-                } catch (ex: IOException) {
-                    ex.printStackTrace()
-                }
+                writeCachedResolverHints()
 
                 executedPatches.values.reversed().forEach { (patch, _) ->
                     patch.close()
                 }
             }
+        }
+    }
+
+    private fun loadCachedResolverHints() {
+        try {
+            val file = File(resolverHintsFileName)
+            if (!file.exists()) {
+                logger.info("Resolving classes without using a saved cache")
+                return
+            }
+            logger.info("Resolving classes using existing cache")
+
+            // Should remove entries for fingerprint classes that no longer exist
+            // use Class.forName() on each key and see if it loads?
+
+            val map = Gson().fromJson<Map<out String, String>>(
+                file.readText(),
+                object : TypeToken<Map<String, String>>() {}.type
+            ).toMutableMap()
+
+            MethodFingerprint.fingerprintNameToClassName.putAll(map)
+
+        } catch (ioException: IOException) {
+            logger.error(ioException.toString())
+        }
+    }
+
+    private fun writeCachedResolverHints() {
+        try {
+            val file = File(resolverHintsFileName)
+            logger.info(if (file.exists()) "Updating resolver cache file" else "Saving resolver cache to file: $resolverHintsFileName")
+
+            val gson = GsonBuilder().setPrettyPrinting().create()
+            file.writeText(gson.toJson(MethodFingerprint.fingerprintNameToClassName.toSortedMap()))
+        } catch (ex: IOException) {
+            logger.error(ex.toString())
         }
     }
 
