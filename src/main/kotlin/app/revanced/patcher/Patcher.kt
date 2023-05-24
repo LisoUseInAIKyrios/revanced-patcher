@@ -57,7 +57,7 @@ class Patcher(private val options: PatcherOptions) {
         // get the opcodes
         opcodes = dexFile.opcodes
         // finally create patcher context
-        context = PatcherContext(dexFile.classes.toMutableList(), File(options.resourceCacheDirectory))
+        context = PatcherContext(dexFile.classes.associateBy { it.type }.toMutableMap(), File(options.resourceCacheDirectory))
 
         // decode manifest file
         decodeResources(ResourceDecodingMode.MANIFEST_ONLY)
@@ -139,6 +139,7 @@ class Patcher(private val options: PatcherOptions) {
         logger.trace("Creating new dex file")
         val newDexFile = object : DexFile {
             override fun getClasses() = context.bytecodeContext.classes.also { it.replaceClasses() }
+                .mapTo(HashSet()) { entry -> entry.value }
             override fun getOpcodes() = this@Patcher.opcodes
         }
 

@@ -1,6 +1,6 @@
 package app.revanced.patcher.data
 
-import app.revanced.patcher.util.ProxyBackedClassList
+import app.revanced.patcher.util.ProxyBackedClassMap
 import app.revanced.patcher.util.method.MethodWalker
 import org.jf.dexlib2.iface.ClassDef
 import org.jf.dexlib2.iface.Method
@@ -20,11 +20,11 @@ import javax.xml.transform.stream.StreamResult
 
 sealed interface Context
 
-class BytecodeContext internal constructor(classes: MutableList<ClassDef>) : Context {
+class BytecodeContext internal constructor(classes: MutableMap<String, ClassDef>) : Context {
     /**
      * The list of classes.
      */
-    val classes = ProxyBackedClassList(classes)
+    val classes = ProxyBackedClassMap(classes)
 
     /**
      * Find a class by a given class name.
@@ -42,12 +42,12 @@ class BytecodeContext internal constructor(classes: MutableList<ClassDef>) : Con
      */
     fun findClass(predicate: (ClassDef) -> Boolean) =
         // if we already proxied the class matching the predicate...
-        classes.proxies.firstOrNull { predicate(it.immutableClass) } ?:
+        classes.proxies.values.firstOrNull { predicate(it.immutableClass) } ?:
         // else resolve the class to a proxy and return it, if the predicate is matching a class
-        classes.find(predicate)?.let { proxy(it) }
+        classes.values.find(predicate)?.let { proxy(it) }
 
     fun proxy(classDef: ClassDef): app.revanced.patcher.util.proxy.ClassProxy {
-        var proxy = this.classes.proxies.find { it.immutableClass.type == classDef.type }
+        var proxy = this.classes.proxies[classDef.type]
         if (proxy == null) {
             proxy = app.revanced.patcher.util.proxy.ClassProxy(classDef)
             this.classes.add(proxy)

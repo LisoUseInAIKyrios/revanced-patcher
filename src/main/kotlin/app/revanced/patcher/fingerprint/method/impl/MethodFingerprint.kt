@@ -49,9 +49,9 @@ abstract class MethodFingerprint(
          * @param context The [BytecodeContext] to host proxies.
          * @return True if the resolution was successful, false otherwise.
          */
-        fun Iterable<MethodFingerprint>.resolve(context: BytecodeContext, classes: Iterable<ClassDef>) {
+        fun Iterable<MethodFingerprint>.resolve(context: BytecodeContext, classes: Map<String, ClassDef>) {
             for (fingerprint in this) // For each fingerprint
-                classes@ for (classDef in classes) // search through all classes for the fingerprint
+                classes@ for (classDef in classes.values) // search through all classes for the fingerprint
                     if (fingerprint.resolve(context, classDef))
                         break@classes // if the resolution succeeded, continue with the next fingerprint
         }

@@ -8,7 +8,7 @@ import org.jf.dexlib2.iface.ClassDef
 import java.io.File
 
 data class PatcherContext(
-    val classes: MutableList<ClassDef>,
+    val classes: MutableMap<String, ClassDef>,
     val resourceCacheDirectory: File,
 ) {
     val packageMetadata = PackageMetadata()
@@ -41,20 +41,20 @@ data class PatcherContext(
                     ).classes) {
                         val type = classDef.type
 
-                        val result = classes.findIndexed { it.type == type }
+                        val result = classes[type]
                         if (result == null) {
                             logger.trace("Merging type $type")
-                            classes.add(classDef)
+                            classes[type] = classDef
                             continue
                         }
 
-                        val (existingClass, existingClassIndex) = result
+//                        val (existingClass, existingClassIndex) = result
 
                         logger.trace("Type $type exists. Adding missing methods and fields.")
 
-                        existingClass.merge(classDef, context, logger).let { mergedClass ->
-                            if (mergedClass !== existingClass) // referential equality check
-                                classes[existingClassIndex] = mergedClass
+                        result.merge(classDef, context, logger).let { mergedClass ->
+                            if (mergedClass !== result) // referential equality check
+                                classes[result.type] = mergedClass
                         }
                     }
                 }
