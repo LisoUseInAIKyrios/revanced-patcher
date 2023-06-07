@@ -4,15 +4,9 @@ import app.revanced.patcher.data.Context
 import app.revanced.patcher.extensions.PatchExtensions.dependencies
 import app.revanced.patcher.extensions.PatchExtensions.patchName
 import app.revanced.patcher.extensions.PatchExtensions.requiresIntegrations
-import app.revanced.patcher.extensions.nullOutputStream
 import app.revanced.patcher.fingerprint.method.impl.MethodFingerprint
 import app.revanced.patcher.fingerprint.method.impl.MethodFingerprint.Companion.resolve
-import app.revanced.patcher.patch.BytecodePatch
-import app.revanced.patcher.patch.Patch
-import app.revanced.patcher.patch.PatchResult
-import app.revanced.patcher.patch.PatchResultError
-import app.revanced.patcher.patch.PatchResultSuccess
-import app.revanced.patcher.patch.ResourcePatch
+import app.revanced.patcher.patch.*
 import app.revanced.patcher.util.VersionReader
 import brut.androlib.Androlib
 import brut.androlib.meta.UsesFramework
@@ -35,6 +29,7 @@ import org.jf.dexlib2.iface.DexFile
 import org.jf.dexlib2.writer.io.MemoryDataStore
 import java.io.File
 import java.io.IOException
+import java.io.OutputStream
 import java.nio.file.Files
 
 internal val NAMER = BasicDexFileNamer()
@@ -262,7 +257,7 @@ class Patcher(private val options: PatcherOptions) {
                     XmlPullStreamDecoder(
                         axmlParser, AndrolibResources().resXmlSerializer
                     ).decodeManifest(
-                        extInputFile.directory.getFileInput("AndroidManifest.xml"), nullOutputStream
+                        extInputFile.directory.getFileInput("AndroidManifest.xml"), OutputStream.nullOutputStream()
                     )
                 }
             }
