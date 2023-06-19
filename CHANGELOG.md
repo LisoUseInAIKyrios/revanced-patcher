@@ -1,3 +1,77 @@
+## [11.0.1](https://github.com/revanced/revanced-patcher/compare/v11.0.0...v11.0.1) (2023-06-12)
+
+
+### Bug Fixes
+
+* revert using `OutputStream.nullOutputStream` ([f02a426](https://github.com/revanced/revanced-patcher/commit/f02a42610b7698fc8cc6bc5183c9ccba2ed96cda))
+
+## [11.0.1-dev.1](https://github.com/revanced/revanced-patcher/compare/v11.0.0...v11.0.1-dev.1) (2023-06-12)
+
+
+### Bug Fixes
+
+* revert using `OutputStream.nullOutputStream` ([f02a426](https://github.com/revanced/revanced-patcher/commit/f02a42610b7698fc8cc6bc5183c9ccba2ed96cda))
+
+# [11.0.0](https://github.com/revanced/revanced-patcher/compare/v10.0.0...v11.0.0) (2023-06-10)
+
+
+### Bug Fixes
+
+* add imports to fix failing tests ([43d6868](https://github.com/revanced/revanced-patcher/commit/43d6868d1f59922f9812f3e4a2a890f3b331def6))
+
+
+* refactor!: move extension functions to their corresponding classes ([a12fe7d](https://github.com/revanced/revanced-patcher/commit/a12fe7dd9e976c38a0a82fe35e6650f58f815de4))
+* refactor!: use proper extension function names ([efdd01a](https://github.com/revanced/revanced-patcher/commit/efdd01a9886b6f06af213731824621964367b2a3))
+* fix!: implement extension functions consistently ([aacf900](https://github.com/revanced/revanced-patcher/commit/aacf9007647b1cc11bc40053625802573efda6ef))
+
+
+### BREAKING CHANGES
+
+* This changes the import paths for extension functions.
+* This changes the names of extension functions
+* This changes the name of functions
+
+# [11.0.0-dev.2](https://github.com/revanced/revanced-patcher/compare/v11.0.0-dev.1...v11.0.0-dev.2) (2023-06-09)
+
+
+### Bug Fixes
+
+* add imports to fix failing tests ([43d6868](https://github.com/revanced/revanced-patcher/commit/43d6868d1f59922f9812f3e4a2a890f3b331def6))
+
+# [11.0.0-dev.1](https://github.com/revanced/revanced-patcher/compare/v10.0.0...v11.0.0-dev.1) (2023-06-07)
+
+
+* refactor!: move extension functions to their corresponding classes ([a12fe7d](https://github.com/revanced/revanced-patcher/commit/a12fe7dd9e976c38a0a82fe35e6650f58f815de4))
+* refactor!: use proper extension function names ([efdd01a](https://github.com/revanced/revanced-patcher/commit/efdd01a9886b6f06af213731824621964367b2a3))
+* fix!: implement extension functions consistently ([aacf900](https://github.com/revanced/revanced-patcher/commit/aacf9007647b1cc11bc40053625802573efda6ef))
+
+
+### BREAKING CHANGES
+
+* This changes the import paths for extension functions.
+* This changes the names of extension functions
+* This changes the name of functions
+
+# [10.0.0](https://github.com/revanced/revanced-patcher/compare/v9.0.0...v10.0.0) (2023-06-07)
+
+
+* fix!: check for two methods parameters orders (#183) ([b6d6a75](https://github.com/revanced/revanced-patcher/commit/b6d6a7591ba1c0b48ffdef52352709564da8d9be)), closes [#183](https://github.com/revanced/revanced-patcher/issues/183)
+
+
+### BREAKING CHANGES
+
+* This requires changes to `MethodFingerprint`
+
+# [10.0.0-dev.1](https://github.com/revanced/revanced-patcher/compare/v9.0.0...v10.0.0-dev.1) (2023-06-07)
+
+
+* fix!: check for two methods parameters orders (#183) ([b6d6a75](https://github.com/revanced/revanced-patcher/commit/b6d6a7591ba1c0b48ffdef52352709564da8d9be)), closes [#183](https://github.com/revanced/revanced-patcher/issues/183)
+
+
+### BREAKING CHANGES
+
+* This requires changes to `MethodFingerprint`
+
 # [9.0.0](https://github.com/revanced/revanced-patcher/compare/v8.0.0...v9.0.0) (2023-05-23)
 
 
