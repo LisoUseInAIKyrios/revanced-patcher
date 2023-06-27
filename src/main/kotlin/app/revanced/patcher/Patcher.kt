@@ -5,7 +5,7 @@ import app.revanced.patcher.extensions.PatchExtensions.dependencies
 import app.revanced.patcher.extensions.PatchExtensions.patchName
 import app.revanced.patcher.extensions.PatchExtensions.requiresIntegrations
 import app.revanced.patcher.fingerprint.method.impl.MethodFingerprint
-import app.revanced.patcher.fingerprint.method.impl.MethodFingerprint.Companion.resolve
+import app.revanced.patcher.fingerprint.method.impl.MethodFingerprint.Companion.resolveUsingLookupMap
 import app.revanced.patcher.patch.BytecodePatch
 import app.revanced.patcher.patch.Patch
 import app.revanced.patcher.patch.PatchResult
@@ -337,10 +337,7 @@ class Patcher(private val options: PatcherOptions) {
                 context.resourceContext
             } else {
                 context.bytecodeContext.also { context ->
-                    (patchInstance as BytecodePatch).fingerprints?.resolve(
-                        context,
-                        context.classes
-                    )
+                    (patchInstance as BytecodePatch).fingerprints?.resolveUsingLookupMap(context, context.classes)
                 }
             }
 
@@ -362,7 +359,7 @@ class Patcher(private val options: PatcherOptions) {
 
             logger.trace("Initialize lookup maps for method MethodFingerprint resolution")
 
-            //MethodFingerprint.initializeFingerprintResolutionLookupMaps(context.bytecodeContext)
+            MethodFingerprint.initializeFingerprintResolutionLookupMaps(context.bytecodeContext)
 
             // prevent from decoding the manifest twice if it is not needed
             if (resourceDecodingMode == ResourceDecodingMode.FULL) decodeResources(ResourceDecodingMode.FULL)

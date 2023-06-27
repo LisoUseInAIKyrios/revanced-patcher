@@ -153,11 +153,11 @@ abstract class MethodFingerprint(
          * - Faster: Specify [accessFlags], [returnType] and [parameters].
          * - Fastest: Specify [strings], with at least one string being an exact (non-partial) match.
          */
-        internal fun Iterable<MethodFingerprint>.resolveUsingLookupMap(context: BytecodeContext) {
+        internal fun Iterable<MethodFingerprint>.resolveUsingLookupMap(context: BytecodeContext, classes: Iterable<ClassDef>) {
             if (methods.isEmpty()) throw PatchResultError("lookup map not initialized")
 
             for (fingerprint in this) {
-                fingerprint.resolveUsingLookupMap(context)
+                fingerprint.resolveUsingLookupMap(context, classes)
             }
         }
 
@@ -173,7 +173,7 @@ abstract class MethodFingerprint(
          * - Faster: Specify [accessFlags], [returnType] and [parameters].
          * - Fastest: Specify [strings], with at least one string being an exact (non-partial) match.
          */
-        internal fun MethodFingerprint.resolveUsingLookupMap(context: BytecodeContext): Boolean {
+        internal fun MethodFingerprint.resolveUsingLookupMap(context: BytecodeContext, classes: Iterable<ClassDef>): Boolean {
             /**
              * Lookup [MethodClassPair]s that match the methods strings present in a [MethodFingerprint].
              *
@@ -218,49 +218,36 @@ abstract class MethodFingerprint(
              *
              * @return True if the resolution was successful, false otherwise.
              */
-            fun MethodFingerprint.resolveUsingMethodClassPair(classMethods: Iterable<MethodClassPair>): Boolean {
+            fun MethodFingerprint.resolveUsingMethodClassPair(classMethods: Iterable<MethodClassPair>, cacheFingerprintKey: String): Boolean {
                 classMethods.forEach { classAndMethod ->
-                    if (resolve(context, classAndMethod.first, classAndMethod.second)) return true
+                    if (resolve(context, classAndMethod.first, classAndMethod.second)) {
+                        fingerprintNameToClassName[cacheFingerprintKey] = classAndMethod.second.type
+                        return true
+                    }
                 }
                 return false
             }
 
-            val methodsWithSameStrings = methodStringsLookup()
-            if (methodsWithSameStrings != null) if (resolveUsingMethodClassPair(methodsWithSameStrings)) return true
-
-            // No strings declared or none matched (partial matches are allowed).
-            // Use signature matching.
-            return resolveUsingMethodClassPair(methodSignatureLookup())
-        }
-
-        /**
-         * Resolve a list of [MethodFingerprint] against a list of [ClassDef].
-         *
-         * @param classes The classes on which to resolve the [MethodFingerprint] in.
-         * @param context The [BytecodeContext] to host proxies.
-         * @return True if the resolution was successful, false otherwise.
-         */
-        fun Iterable<MethodFingerprint>.resolve(context: BytecodeContext, classes: Iterable<ClassDef>) {
-            for (fingerprint in this) { // For each fingerprint
-                val cacheFingerprintKey = fingerprint.javaClass.name
-                val fingerprintResolvedClassName = fingerprintNameToClassName[cacheFingerprintKey]
-                if (fingerprintResolvedClassName != null) {
-                    val hintedClassType = classes.firstOrNull { classDef -> classDef.type == fingerprintResolvedClassName  }
-                    if (hintedClassType != null) {
-                        if (fingerprint.resolve(context, hintedClassType)) {
-                            continue
-                        }
-                    }
-                }
-
-                // hinted class did not match, search thru everything
-                classes@ for (classDef in classes) { // search through all classes for the fingerprint
-                    if (fingerprint.resolve(context, classDef)) {
-                        fingerprintNameToClassName[cacheFingerprintKey] = classDef.type
-                        break@classes // if the resolution succeeded, continue with the next fingerprint
+            // Cached lookup
+            val cacheFingerprintKey = javaClass.name
+            val fingerprintResolvedClassName = fingerprintNameToClassName[cacheFingerprintKey]
+            if (fingerprintResolvedClassName != null) {
+                val hintedClassType =
+                    classes.firstOrNull { classDef -> classDef.type == fingerprintResolvedClassName }
+                if (hintedClassType != null) {
+                    if (resolve(context, hintedClassType)) {
+                        return true
                     }
                 }
             }
+
+
+            val methodsWithSameStrings = methodStringsLookup()
+            if (methodsWithSameStrings != null) if (resolveUsingMethodClassPair(methodsWithSameStrings, cacheFingerprintKey)) return true
+
+            // No strings declared or none matched (partial matches are allowed).
+            // Use signature matching.
+            return resolveUsingMethodClassPair(methodSignatureLookup(), cacheFingerprintKey)
         }
 
         /**
