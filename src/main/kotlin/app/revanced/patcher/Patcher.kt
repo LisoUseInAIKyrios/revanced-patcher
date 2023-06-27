@@ -5,8 +5,13 @@ import app.revanced.patcher.extensions.PatchExtensions.dependencies
 import app.revanced.patcher.extensions.PatchExtensions.patchName
 import app.revanced.patcher.extensions.PatchExtensions.requiresIntegrations
 import app.revanced.patcher.fingerprint.method.impl.MethodFingerprint
-import app.revanced.patcher.fingerprint.method.impl.MethodFingerprint.Companion.resolveUsingLookupMap
-import app.revanced.patcher.patch.*
+import app.revanced.patcher.fingerprint.method.impl.MethodFingerprint.Companion.resolve
+import app.revanced.patcher.patch.BytecodePatch
+import app.revanced.patcher.patch.Patch
+import app.revanced.patcher.patch.PatchResult
+import app.revanced.patcher.patch.PatchResultError
+import app.revanced.patcher.patch.PatchResultSuccess
+import app.revanced.patcher.patch.ResourcePatch
 import app.revanced.patcher.util.VersionReader
 import brut.androlib.Androlib
 import brut.androlib.meta.UsesFramework
@@ -332,7 +337,10 @@ class Patcher(private val options: PatcherOptions) {
                 context.resourceContext
             } else {
                 context.bytecodeContext.also { context ->
-                    (patchInstance as BytecodePatch).fingerprints?.resolveUsingLookupMap(context)
+                    (patchInstance as BytecodePatch).fingerprints?.resolve(
+                        context,
+                        context.classes
+                    )
                 }
             }
 
@@ -354,7 +362,7 @@ class Patcher(private val options: PatcherOptions) {
 
             logger.trace("Initialize lookup maps for method MethodFingerprint resolution")
 
-            MethodFingerprint.initializeFingerprintResolutionLookupMaps(context.bytecodeContext)
+            //MethodFingerprint.initializeFingerprintResolutionLookupMaps(context.bytecodeContext)
 
             // prevent from decoding the manifest twice if it is not needed
             if (resourceDecodingMode == ResourceDecodingMode.FULL) decodeResources(ResourceDecodingMode.FULL)
@@ -381,7 +389,8 @@ class Patcher(private val options: PatcherOptions) {
 
             writeCachedResolverHints()
 
-                executedPatches.values.filter(ExecutedPatch::success)
+            executedPatches.values
+                .filter(ExecutedPatch::success)
                 .map(ExecutedPatch::patchInstance)
                 .filterIsInstance(Closeable::class.java)
                 .asReversed().forEach {
@@ -414,10 +423,10 @@ class Patcher(private val options: PatcherOptions) {
             // Should remove entries for fingerprint classes that no longer exist
             // use Class.forName() on each key and see if it loads?
 
-            val map = Gson().fromJson<Map<out String, String>>(
+            val map = Gson().fromJson<MutableMap<out String, String>>(
                 file.readText(),
-                object : TypeToken<Map<String, String>>() {}.type
-            ).toMutableMap()
+                object : TypeToken<MutableMap<String, String>>() {}.type
+            )
 
             MethodFingerprint.fingerprintNameToClassName.putAll(map)
 
