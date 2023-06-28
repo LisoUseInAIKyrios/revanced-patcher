@@ -46,6 +46,7 @@ abstract class MethodFingerprint(
 
     companion object {
         var fingerprintNameToClassName: MutableMap<String, String> = Collections.emptyMap<String, String>().toMutableMap()
+        var numberOfUpdatedFingerprintCacheEntries = 0
 
         /**
          * A list of methods and the class they were found in.
@@ -222,6 +223,7 @@ abstract class MethodFingerprint(
                 classMethods.forEach { classAndMethod ->
                     if (resolve(context, classAndMethod.first, classAndMethod.second)) {
                         fingerprintNameToClassName[cacheFingerprintKey] = classAndMethod.second.type
+                        numberOfUpdatedFingerprintCacheEntries++
                         return true
                     }
                 }

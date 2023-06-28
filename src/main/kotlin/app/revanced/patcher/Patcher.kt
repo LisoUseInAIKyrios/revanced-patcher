@@ -435,7 +435,14 @@ class Patcher(private val options: PatcherOptions) {
     private fun writeCachedResolverHints() {
         try {
             val file = File(resolverHintsFileName)
-            logger.info(if (file.exists()) "Updating resolver cache file" else "Saving resolver cache to file: $resolverHintsFileName")
+            if (file.exists()) {
+                val updatedCacheEntries = MethodFingerprint.numberOfUpdatedFingerprintCacheEntries
+                if (updatedCacheEntries > 0) {
+                    logger.info("Updated $updatedCacheEntries fingerprint cache entries")
+                }
+            } else {
+                logger.info("Saving resolver cache to file: $resolverHintsFileName")
+            }
 
             val gson = GsonBuilder().setPrettyPrinting().create()
             file.writeText(gson.toJson(MethodFingerprint.fingerprintNameToClassName.toSortedMap()))
