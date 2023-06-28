@@ -243,11 +243,21 @@ abstract class MethodFingerprint(
 
 
             val methodsWithSameStrings = methodStringsLookup()
-            if (methodsWithSameStrings != null) if (resolveUsingMethodClassPair(methodsWithSameStrings, cacheFingerprintKey)) return true
+            if (methodsWithSameStrings != null) {
+                if (resolveUsingMethodClassPair(methodsWithSameStrings, cacheFingerprintKey)) return true
+                println("${this.javaClass.name}: could not find exact match using declared strings"
+                        + " (edit fingerprint and add at least 1 exact match string)")
+            }
 
+            var time = System.currentTimeMillis()
             // No strings declared or none matched (partial matches are allowed).
             // Use signature matching.
-            return resolveUsingMethodClassPair(methodSignatureLookup(), cacheFingerprintKey)
+            try {
+                return resolveUsingMethodClassPair(methodSignatureLookup(), cacheFingerprintKey)
+            } finally {
+               time = System.currentTimeMillis() - time
+               if (time > 50) println("${this.javaClass.name} resolved in: ${time}ms")
+            }
         }
 
         /**
