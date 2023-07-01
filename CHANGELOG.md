@@ -1,3 +1,31 @@
+## [11.0.4](https://github.com/revanced/revanced-patcher/compare/v11.0.3...v11.0.4) (2023-07-01)
+
+
+### Bug Fixes
+
+* clear method lookup maps ([#198](https://github.com/revanced/revanced-patcher/issues/198)) ([9d81baf](https://github.com/revanced/revanced-patcher/commit/9d81baf4b4ca7514f8a1009e72218638609a7c7f))
+
+## [11.0.4-dev.1](https://github.com/revanced/revanced-patcher/compare/v11.0.3...v11.0.4-dev.1) (2023-07-01)
+
+
+### Bug Fixes
+
+* clear method lookup maps ([#198](https://github.com/revanced/revanced-patcher/issues/198)) ([9d81baf](https://github.com/revanced/revanced-patcher/commit/9d81baf4b4ca7514f8a1009e72218638609a7c7f))
+
+## [11.0.3](https://github.com/revanced/revanced-patcher/compare/v11.0.2...v11.0.3) (2023-06-30)
+
+
+### Bug Fixes
+
+* NPE on method lookup ([#195](https://github.com/revanced/revanced-patcher/issues/195)) ([fcef434](https://github.com/revanced/revanced-patcher/commit/fcef4342e8bde73945e8315aef6337cc8a8d8572))
+
+## [11.0.3-dev.1](https://github.com/revanced/revanced-patcher/compare/v11.0.2...v11.0.3-dev.1) (2023-06-28)
+
+
+### Bug Fixes
+
+* NPE on method lookup ([#195](https://github.com/revanced/revanced-patcher/issues/195)) ([fcef434](https://github.com/revanced/revanced-patcher/commit/fcef4342e8bde73945e8315aef6337cc8a8d8572))
+
 ## [11.0.2](https://github.com/revanced/revanced-patcher/compare/v11.0.1...v11.0.2) (2023-06-27)
 
 
