@@ -233,6 +233,22 @@ abstract class MethodFingerprint(
                     if (resolve(context, classAndMethod.first, classAndMethod.second)) {
                         fingerprintNameToClassName[cacheFingerprintKey] = classAndMethod.second.type
                         numberOfUpdatedFingerprintCacheEntries++
+
+                        if (customFingerprint == null) {
+                            if (classAndMethod.second.type.contains("/")) {
+                                println("${javaClass.simpleName}: matched to a non obfuscated package: ${classAndMethod.second.type}")
+                            }
+                        }
+                        // If no strings were declared in the fingerprint, then check if any exists
+                        if (strings == null) {
+                            classAndMethod.first.implementation?.instructions?.forEach { instruction ->
+                                if (instruction.opcode == Opcode.CONST_STRING || instruction.opcode == Opcode.CONST_STRING_JUMBO) {
+                                    val string = ((instruction as ReferenceInstruction).reference as StringReference).string
+                                    if (string.isNotEmpty()) println("${javaClass.simpleName}: found undeclared string: '$string'")
+                                }
+                            }
+                        }
+
                         return true
                     }
                 }
