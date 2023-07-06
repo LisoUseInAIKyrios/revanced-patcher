@@ -236,7 +236,7 @@ abstract class MethodFingerprint(
 
                         if (customFingerprint == null) {
                             if (classAndMethod.second.type.contains("/")) {
-                                println("${javaClass.simpleName}: matched to a non obfuscated package: ${classAndMethod.second.type}")
+                                println("${javaClass.simpleName}: matched to a non obfuscated package: ${classAndMethod.second.type}  method: ${classAndMethod.first.name}")
                             }
                         }
                         // If no strings were declared in the fingerprint, then check if any exists
