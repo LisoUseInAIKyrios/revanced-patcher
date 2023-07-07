@@ -228,18 +228,19 @@ abstract class MethodFingerprint(
              *
              * @return True if the resolution was successful, false otherwise.
              */
-            fun MethodFingerprint.resolveUsingMethodClassPair(classMethods: Iterable<MethodClassPair>, cacheFingerprintKey: String): Boolean {
+            fun MethodFingerprint.resolveUsingMethodClassPair(classMethods: Iterable<MethodClassPair>): Boolean {
                 classMethods.forEach { classAndMethod ->
                     if (resolve(context, classAndMethod.first, classAndMethod.second)) {
-                        fingerprintNameToMethodName[cacheFingerprintKey] = classAndMethod.second.type + classAndMethod.first.name
                         numberOfUpdatedFingerprintCacheEntries++
 
                         if (customFingerprint == null) {
-                            if (classAndMethod.second.type.contains("/")) {
-                                println("${javaClass.simpleName}: matched to a non obfuscated package: ${classAndMethod.second.type}  method: ${classAndMethod.first.name}")
+                            val className = classAndMethod.second.type
+                            if (className.contains("/")) {
+                                val methodName = classAndMethod.first.name
+                                println("${javaClass.name}: matched to a non obfuscated package: $className  method: $methodName")
                             }
                         }
-                        // If no strings were declared in the fingerprint, then check if any exists
+                        // If no strings were declared in the fingerprint, then check if any exists.
                         if (strings == null) {
                             classAndMethod.first.implementation?.instructions?.forEach { instruction ->
                                 if (instruction.opcode == Opcode.CONST_STRING || instruction.opcode == Opcode.CONST_STRING_JUMBO) {
@@ -256,8 +257,7 @@ abstract class MethodFingerprint(
             }
 
             // Cached lookup
-            val cacheFingerprintKey = javaClass.name
-            val previouslyResolvedFullMethodName = fingerprintNameToMethodName[cacheFingerprintKey]
+            val previouslyResolvedFullMethodName = fingerprintNameToMethodName[javaClass.name]
             if (previouslyResolvedFullMethodName != null) {
                 val separatorIndex = previouslyResolvedFullMethodName.indexOf(';') + 1
                 val className = previouslyResolvedFullMethodName.substring(0, separatorIndex)
@@ -273,7 +273,7 @@ abstract class MethodFingerprint(
 
             val methodsWithSameStrings = methodStringsLookup()
             if (methodsWithSameStrings != null) {
-                if (resolveUsingMethodClassPair(methodsWithSameStrings, cacheFingerprintKey)) return true
+                if (resolveUsingMethodClassPair(methodsWithSameStrings)) return true
                 println("${this.javaClass.name}: could not find exact match using declared strings"
                         + " (edit fingerprint and add at least 1 exact match string)")
             }
@@ -282,7 +282,7 @@ abstract class MethodFingerprint(
             // No strings declared or none matched (partial matches are allowed).
             // Use signature matching.
             try {
-                return resolveUsingMethodClassPair(methodSignatureLookup(), cacheFingerprintKey)
+                return resolveUsingMethodClassPair(methodSignatureLookup())
             } finally {
                time = System.currentTimeMillis() - time
                if (time > 50) println("${this.javaClass.name} resolved in: ${time}ms")
@@ -437,6 +437,8 @@ abstract class MethodFingerprint(
                 ),
                 context
             )
+
+            fingerprintNameToMethodName[javaClass.name] = forClass.type + method.name
 
             return true
         }
