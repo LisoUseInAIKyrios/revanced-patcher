@@ -427,7 +427,7 @@ class Patcher(private val options: PatcherOptions) {
                 object : TypeToken<MutableMap<String, String>>() {}.type
             )
 
-            MethodFingerprint.fingerprintNameToClassName.putAll(map)
+            MethodFingerprint.fingerprintNameToMethodName.putAll(map)
 
         } catch (ioException: IOException) {
             logger.error(ioException.toString())
@@ -447,7 +447,7 @@ class Patcher(private val options: PatcherOptions) {
             }
 
             val gson = GsonBuilder().setPrettyPrinting().create()
-            file.writeText(gson.toJson(MethodFingerprint.fingerprintNameToClassName.toSortedMap()))
+            file.writeText(gson.toJson(MethodFingerprint.fingerprintNameToMethodName.toSortedMap()))
         } catch (ex: IOException) {
             logger.error(ex.toString())
         }

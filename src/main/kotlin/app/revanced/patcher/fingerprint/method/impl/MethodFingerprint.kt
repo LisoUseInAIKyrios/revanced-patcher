@@ -45,7 +45,7 @@ abstract class MethodFingerprint(
     var result: MethodFingerprintResult? = null
 
     companion object {
-        var fingerprintNameToClassName: MutableMap<String, String> = Collections.emptyMap<String, String>().toMutableMap()
+        var fingerprintNameToMethodName: MutableMap<String, String> = Collections.emptyMap<String, String>().toMutableMap()
         var numberOfUpdatedFingerprintCacheEntries = 0
 
         /**
@@ -231,7 +231,7 @@ abstract class MethodFingerprint(
             fun MethodFingerprint.resolveUsingMethodClassPair(classMethods: Iterable<MethodClassPair>, cacheFingerprintKey: String): Boolean {
                 classMethods.forEach { classAndMethod ->
                     if (resolve(context, classAndMethod.first, classAndMethod.second)) {
-                        fingerprintNameToClassName[cacheFingerprintKey] = classAndMethod.second.type
+                        fingerprintNameToMethodName[cacheFingerprintKey] = classAndMethod.second.type + classAndMethod.first.name
                         numberOfUpdatedFingerprintCacheEntries++
 
                         if (customFingerprint == null) {
@@ -257,15 +257,17 @@ abstract class MethodFingerprint(
 
             // Cached lookup
             val cacheFingerprintKey = javaClass.name
-            val fingerprintResolvedClassName = fingerprintNameToClassName[cacheFingerprintKey]
-            if (fingerprintResolvedClassName != null) {
-                val hintedClassType =
-                    classes.firstOrNull { classDef -> classDef.type == fingerprintResolvedClassName }
+            val previouslyResolvedFullMethodName = fingerprintNameToMethodName[cacheFingerprintKey]
+            if (previouslyResolvedFullMethodName != null) {
+                val separatorIndex = previouslyResolvedFullMethodName.indexOf(';') + 1
+                val className = previouslyResolvedFullMethodName.substring(0, separatorIndex)
+                val hintedClassType = classes.firstOrNull { classDef -> classDef.type == className }
                 if (hintedClassType != null) {
                     if (resolve(context, hintedClassType)) {
                         return true
                     }
                 }
+                println("${this.javaClass.name}: could not find cached lookup: $className")
             }
 
 
