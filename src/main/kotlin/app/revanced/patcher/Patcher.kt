@@ -30,6 +30,7 @@ import lanchon.multidexlib2.BasicDexFileNamer
 import lanchon.multidexlib2.DexIO
 import lanchon.multidexlib2.MultiDexIO
 import org.jf.dexlib2.Opcodes
+import org.jf.dexlib2.iface.ClassDef
 import org.jf.dexlib2.iface.DexFile
 import org.jf.dexlib2.writer.io.MemoryDataStore
 import java.io.Closeable
@@ -69,8 +70,25 @@ class Patcher(private val options: PatcherOptions) {
         val dexFile = MultiDexIO.readDexFile(true, options.inputFile, NAMER, null, null)
         // get the opcodes
         opcodes = dexFile.opcodes
+
+        // Fingerprints for non obfuscated classes always resolve very quickly since they can specify a classname
+        // and there is never a need search opcodes unless it's in the target class file.
+        // But for all other fingerprints that resolve to obfuscated classes, this can be sped up by
+        // sorting the classes so the obfuscated come before the non-obfuscated.
+        // Then no time is wasted searching opcodes of non-obfuscated classes.
+        val obfuscatedClasses = ArrayList<ClassDef>(dexFile.classes.size)
+        val nonObfuscatedClasses = mutableListOf<ClassDef>()
+        dexFile.classes.forEach {
+            if (it.type.contains('/')) {
+                nonObfuscatedClasses += it
+            } else {
+                obfuscatedClasses += it
+            }
+        }
+        obfuscatedClasses.addAll(nonObfuscatedClasses) // add non obfuscated classes after obfuscated
+
         // finally create patcher context
-        context = PatcherContext(dexFile.classes.toMutableList(), File(options.resourceCacheDirectory))
+        context = PatcherContext(obfuscatedClasses, File(options.resourceCacheDirectory))
 
         // load optional resolver hints
         loadCachedResolverHints()
