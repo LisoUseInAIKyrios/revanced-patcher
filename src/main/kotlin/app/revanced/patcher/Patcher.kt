@@ -6,12 +6,7 @@ import app.revanced.patcher.extensions.PatchExtensions.patchName
 import app.revanced.patcher.extensions.PatchExtensions.requiresIntegrations
 import app.revanced.patcher.fingerprint.method.impl.MethodFingerprint
 import app.revanced.patcher.fingerprint.method.impl.MethodFingerprint.Companion.resolveUsingLookupMap
-import app.revanced.patcher.patch.BytecodePatch
-import app.revanced.patcher.patch.Patch
-import app.revanced.patcher.patch.PatchResult
-import app.revanced.patcher.patch.PatchResultError
-import app.revanced.patcher.patch.PatchResultSuccess
-import app.revanced.patcher.patch.ResourcePatch
+import app.revanced.patcher.patch.*
 import brut.androlib.AaptInvoker
 import brut.androlib.ApkDecoder
 import brut.androlib.Config
