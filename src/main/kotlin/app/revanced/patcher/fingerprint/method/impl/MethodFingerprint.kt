@@ -103,7 +103,7 @@ abstract class MethodFingerprint(
                 methodClassPairs!!.add(methodClassPair)
             }
 
-            if (methods.isNotEmpty()) throw PatchResultError("Map already initialized")
+            if (methods.isNotEmpty()) MethodFingerprint.clearFingerprintResolutionLookupMaps()
 
             context.classes.classes.forEach { classDef ->
                 classDef.methods.forEach { method ->
