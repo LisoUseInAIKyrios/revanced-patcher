@@ -6,34 +6,40 @@ import app.revanced.patcher.extensions.PatchExtensions.patchName
 import app.revanced.patcher.extensions.PatchExtensions.requiresIntegrations
 import app.revanced.patcher.fingerprint.method.impl.MethodFingerprint
 import app.revanced.patcher.fingerprint.method.impl.MethodFingerprint.Companion.resolveUsingLookupMap
-import app.revanced.patcher.patch.*
+import app.revanced.patcher.patch.BytecodePatch
+import app.revanced.patcher.patch.Patch
+import app.revanced.patcher.patch.PatchResult
+import app.revanced.patcher.patch.PatchResultError
+import app.revanced.patcher.patch.PatchResultSuccess
+import app.revanced.patcher.patch.ResourcePatch
 import brut.androlib.AaptInvoker
 import brut.androlib.ApkDecoder
 import brut.androlib.Config
+import brut.androlib.apk.ApkInfo
+import brut.androlib.apk.UsesFramework
 import brut.androlib.res.Framework
 import brut.androlib.res.ResourcesDecoder
 import brut.androlib.res.decoder.AndroidManifestResourceParser
-import brut.androlib.res.decoder.ResAttrDecoder
 import brut.androlib.res.decoder.XmlPullStreamDecoder
-import brut.androlib.res.util.ExtMXSerializer
-import brut.androlib.res.util.ExtXmlSerializer
 import brut.androlib.res.xml.ResXmlPatcher
 import brut.directory.ExtFile
+import com.android.tools.smali.dexlib2.Opcodes
+import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.DexFile
+import com.android.tools.smali.dexlib2.writer.io.MemoryDataStore
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import lanchon.multidexlib2.BasicDexFileNamer
 import lanchon.multidexlib2.DexIO
 import lanchon.multidexlib2.MultiDexIO
-import org.jf.dexlib2.Opcodes
-import org.jf.dexlib2.iface.ClassDef
-import org.jf.dexlib2.iface.DexFile
-import org.jf.dexlib2.writer.io.MemoryDataStore
 import java.io.Closeable
 import java.io.File
 import java.io.IOException
 import java.io.OutputStream
 import java.nio.file.Files
+import java.util.logging.Level
+import java.util.logging.LogManager
 
 internal val NAMER = BasicDexFileNamer()
 
@@ -42,23 +48,41 @@ internal val NAMER = BasicDexFileNamer()
  * @param options The options for the patcher.
  */
 class Patcher(private val options: PatcherOptions) {
+    val context: PatcherContext
+
     private val resolverHintsFileName = "resolver_hints.json"
 
     private val logger = options.logger
+
     private val opcodes: Opcodes
+
     private var resourceDecodingMode = ResourceDecodingMode.MANIFEST_ONLY
+
     private var mergeIntegrations = false
-    val context: PatcherContext
 
     private val config = Config.getDefaultConfig().apply {
+        useAapt2 = true
         aaptPath = options.aaptPath
         frameworkDirectory = options.frameworkDirectory
     }
 
     init {
+        // Disable unwanted logging.
+        LogManager.getLogManager().let { manager ->
+            manager.getLogger("").level = Level.OFF // Disable root logger.
+            // Enable only ReVanced logging.
+            manager.loggerNames
+                .toList()
+                .filter { it.startsWith("app.revanced") }
+                .map { manager.getLogger(it) }
+                .forEach { it.level = Level.INFO }
+        }
+
         logger.info("Reading dex files")
+
         // read dex files
         val dexFile = MultiDexIO.readDexFile(true, options.inputFile, NAMER, null, null)
+
         // get the opcodes
         opcodes = dexFile.opcodes
 
@@ -111,61 +135,61 @@ class Patcher(private val options: PatcherOptions) {
     fun save(): PatcherResult {
         var resourceFile: File? = null
 
-        when (resourceDecodingMode) {
-            ResourceDecodingMode.FULL -> {
-                logger.info("Compiling resources")
+        if (resourceDecodingMode == ResourceDecodingMode.FULL) {
+            logger.info("Compiling resources")
 
-                val cacheDirectory = ExtFile(options.resourceCacheDirectory)
-                val aaptFile = cacheDirectory.resolve("aapt_temp_file").also {
-                    Files.deleteIfExists(it.toPath())
-                }.also { resourceFile = it }
+            val cacheDirectory = ExtFile(options.resourceCacheDirectory)
+            val aaptFile = cacheDirectory.resolve("aapt_temp_file").also {
+                Files.deleteIfExists(it.toPath())
+            }.also { resourceFile = it }
 
-                try {
-                    AaptInvoker(
-                        config,
-                        context.packageMetadata.apkInfo
-                    ).invokeAapt(
-                        aaptFile,
-                        cacheDirectory.resolve("AndroidManifest.xml").also {
-                            ResXmlPatcher.fixingPublicAttrsInProviderAttributes(it)
-                        },
-                        cacheDirectory.resolve("res"),
-                        null,
-                        null,
-                        context.packageMetadata.apkInfo.usesFramework.let { usesFramework ->
-                            usesFramework.ids.map { id ->
-                                Framework(config).getFrameworkApk(id, usesFramework.tag)
-                            }.toTypedArray()
-                        }
-                    )
-                } finally {
-                    cacheDirectory.close()
-                }
+            try {
+                AaptInvoker(
+                    config,
+                    context.packageMetadata.apkInfo
+                ).invokeAapt(
+                    aaptFile,
+                    cacheDirectory.resolve("AndroidManifest.xml").also {
+                        ResXmlPatcher.fixingPublicAttrsInProviderAttributes(it)
+                    },
+                    cacheDirectory.resolve("res"),
+                    null,
+                    null,
+                    context.packageMetadata.apkInfo.usesFramework.let { usesFramework ->
+                        usesFramework.ids.map { id ->
+                            Framework(config).getFrameworkApk(id, usesFramework.tag)
+                        }.toTypedArray()
+                    }
+                )
+            } finally {
+                cacheDirectory.close()
             }
-            else -> logger.info("Not compiling resources because resource patching is not required")
         }
 
-        logger.trace("Creating new dex file")
-        val newDexFile = object : DexFile {
-            override fun getClasses() = context.bytecodeContext.classes.also { it.replaceClasses() }
-            override fun getOpcodes() = this@Patcher.opcodes
-        }
-
-        // write modified dex files
         logger.info("Writing modified dex files")
-        val dexFiles = mutableMapOf<String, MemoryDataStore>()
-        MultiDexIO.writeDexFile(
-            true, -1, // core count
-            dexFiles, NAMER, newDexFile, DexIO.DEFAULT_MAX_DEX_POOL_SIZE, null
-        )
 
-        return PatcherResult(
-            dexFiles.map {
-                app.revanced.patcher.util.dex.DexFile(it.key, it.value.readAt(0))
-            },
-            context.packageMetadata.apkInfo.doNotCompress?.toList(),
-            resourceFile
-        )
+        return mutableMapOf<String, MemoryDataStore>().apply {
+            MultiDexIO.writeDexFile(
+                true,
+                -1, // Defaults to amount of available cores.
+                this,
+                NAMER,
+                object : DexFile {
+                    override fun getClasses() = context.bytecodeContext.classes.also { it.replaceClasses() }
+                    override fun getOpcodes() = this@Patcher.opcodes
+                },
+                DexIO.DEFAULT_MAX_DEX_POOL_SIZE,
+                null
+            )
+        }.let { dexFiles ->
+            PatcherResult(
+                dexFiles.map {
+                    app.revanced.patcher.util.dex.DexFile(it.key, it.value.readAt(0))
+                },
+                context.packageMetadata.apkInfo.doNotCompress?.toList(),
+                resourceFile
+            )
+        }
     }
 
     /**
@@ -205,73 +229,59 @@ class Patcher(private val options: PatcherOptions) {
      * @param mode The [ResourceDecodingMode] to use when decoding.
      */
     private fun decodeResources(mode: ResourceDecodingMode) {
-        val extInputFile = ExtFile(options.inputFile)
-        try {
-            val resourcesDecoder = ResourcesDecoder(config, extInputFile)
+        val apkInfo = ApkInfo(ExtFile(options.inputFile)).also { context.packageMetadata.apkInfo = it }
 
+        // Needed to record uncompressed files.
+        val apkDecoder = ApkDecoder(config, apkInfo)
+
+        // Needed to decode resources.
+        val resourcesDecoder = ResourcesDecoder(config, apkInfo)
+
+        try {
             when (mode) {
                 ResourceDecodingMode.FULL -> {
-                    val outDir = File(options.resourceCacheDirectory)
-                    if (outDir.exists()) {
-                        logger.info("Deleting existing resource cache directory")
-                        if (!outDir.deleteRecursively()) logger.error("Failed to delete existing resource cache directory")
-                    }
-
-                    outDir.mkdirs()
-
                     logger.info("Decoding resources")
 
-                    resourcesDecoder.decodeManifest(outDir)
-                    resourcesDecoder.decodeResources(outDir)
+                    val outDir = options.recreateResourceCacheDirectory()
 
-                    context.packageMetadata.also {
-                        it.apkInfo = resourcesDecoder.apkInfo
-                    }.apkInfo.doNotCompress = ApkDecoder(config, extInputFile).recordUncompressedFiles(
-                        context.packageMetadata.apkInfo, resourcesDecoder.resFileMapping
-                    )
+                    resourcesDecoder.decodeResources(outDir)
+                    resourcesDecoder.decodeManifest(outDir)
+
+                    apkDecoder.recordUncompressedFiles(resourcesDecoder.resFileMapping)
+
+                    apkInfo.usesFramework = UsesFramework().apply {
+                        ids = resourcesDecoder.resTable.listFramePackages().map { it.id }
+                    }
                 }
                 ResourceDecodingMode.MANIFEST_ONLY -> {
-                    logger.info("Decoding AndroidManifest.xml only, because resources are not needed")
+                    logger.info("Decoding app manifest")
 
-                    // Instead of using resourceDecoder.decodeManifest which decodes the whole file
-                    // use the XmlPullStreamDecoder in order to get necessary information from the manifest
-                    // used below.
-                    XmlPullStreamDecoder(AndroidManifestResourceParser().apply {
-                        attrDecoder = ResAttrDecoder().apply { this.resTable = resourcesDecoder.resTable }
-                    }, ExtMXSerializer().apply {
-                        setProperty(
-                            ExtXmlSerializer.PROPERTY_SERIALIZER_INDENTATION, "    "
-                        )
-                        setProperty(
-                            ExtXmlSerializer.PROPERTY_SERIALIZER_LINE_SEPARATOR,
-                            System.getProperty("line.separator")
-                        )
-                        setProperty(
-                            ExtXmlSerializer.PROPERTY_DEFAULT_ENCODING,
-                                "utf-8"
-                            )
-                            setDisabledAttrEscape(true)
-                        }
+                    // Decode manually instead of using resourceDecoder.decodeManifest
+                    // because it does not support decoding to an OutputStream.
+                    XmlPullStreamDecoder(
+                        AndroidManifestResourceParser(resourcesDecoder.resTable),
+                        resourcesDecoder.resXmlSerializer
                     ).decodeManifest(
-                        extInputFile.directory.getFileInput("AndroidManifest.xml"),
+                        apkInfo.apkFile.directory.getFileInput("AndroidManifest.xml"),
                         // Older Android versions do not support OutputStream.nullOutputStream()
-                        object : OutputStream() { override fun write(b: Int) { /* do nothing */ } }
+                        object : OutputStream() {
+                            override fun write(b: Int) { /* do nothing */
+                            }
+                        }
                     )
-                }
-            }
 
-            // Get the package name and version from the manifest using the XmlPullStreamDecoder.
-            // XmlPullStreamDecoder.decodeManifest() sets metadata.apkInfo.
-            context.packageMetadata.let { metadata ->
-                metadata.apkInfo = resourcesDecoder.apkInfo
-
-                metadata.packageName = resourcesDecoder.resTable.currentResPackage.name
-                resourcesDecoder.apkInfo.versionInfo.let {
-                    metadata.packageVersion = it.versionName ?: it.versionCode
+                    // Get the package name and version from the manifest using the XmlPullStreamDecoder.
+                    // XmlPullStreamDecoder.decodeManifest() sets metadata.apkInfo.
+                    context.packageMetadata.let { metadata ->
+                        metadata.packageName = resourcesDecoder.resTable.packageRenamed
+                        apkInfo.versionInfo.let {
+                            metadata.packageVersion = it.versionName ?: it.versionCode
+                        }
+                    }
                 }
             }
         } finally {
-            extInputFile.close()
+            apkInfo.apkFile.close()
         }
     }
 

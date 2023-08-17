@@ -10,20 +10,23 @@ val githubPassword: String = project.findProperty("gpr.key") as? String ?: Syste
 
 repositories {
     mavenCentral()
-    maven {
-        url = uri("https://maven.pkg.github.com/revanced/multidexlib2")
-        credentials {
-            username = githubUsername
-            password = githubPassword
+    google()
+    listOf("multidexlib2", "apktool").forEach { repo ->
+        maven {
+            url = uri("https://maven.pkg.github.com/revanced/$repo")
+            credentials {
+                username = githubUsername
+                password = githubPassword
+            }
         }
     }
 }
 
 dependencies {
     implementation("xpp3:xpp3:1.1.4c")
-    implementation("app.revanced:smali:2.5.3-a3836654")
-    implementation("app.revanced:multidexlib2:2.5.3-a3836654")
-    implementation("app.revanced:apktool-lib:2.8.2-1")
+    implementation("com.android.tools.smali:smali:3.0.3")
+    implementation("app.revanced:multidexlib2:3.0.3.r2")
+    implementation("app.revanced:apktool-lib:2.8.2-3")
 
     implementation("com.google.code.gson:gson:2.10.1")
 
