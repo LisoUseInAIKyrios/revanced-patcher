@@ -8,7 +8,15 @@ import app.revanced.patcher.extensions.PatchExtensions.patchName
 import app.revanced.patcher.extensions.PatchExtensions.requiresIntegrations
 import app.revanced.patcher.fingerprint.method.impl.MethodFingerprint
 import app.revanced.patcher.fingerprint.method.impl.MethodFingerprint.Companion.resolveUsingLookupMap
-import app.revanced.patcher.patch.*
+import app.revanced.patcher.patch.BytecodePatch
+import app.revanced.patcher.patch.Patch
+import app.revanced.patcher.patch.PatchClass
+import app.revanced.patcher.patch.PatchException
+import app.revanced.patcher.patch.PatchResult
+import app.revanced.patcher.patch.ResourcePatch
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.flow
 import java.io.Closeable
 import java.io.File
@@ -16,9 +24,7 @@ import java.io.IOException
 import java.util.function.Supplier
 import java.util.logging.Level
 import java.util.logging.LogManager
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.google.gson.reflect.TypeToken
+import java.util.logging.Logger
 
 /**
  * ReVanced Patcher.
@@ -30,6 +36,8 @@ class Patcher(
 ) : PatchExecutorFunction, PatchesConsumer, IntegrationsConsumer, Supplier<PatcherResult>, Closeable {
 
     private val resolverHintsFileName = "resolver_hints.json"
+
+    private val logger = Logger.getLogger(Patcher::class.java.name)
 
     /**
      * The context of ReVanced [Patcher].
@@ -169,7 +177,7 @@ class Patcher(
         if (options.resourceDecodingMode == ResourceContext.ResourceDecodingMode.FULL)
             context.resourceContext.decodeResources(ResourceContext.ResourceDecodingMode.FULL)
 
-        options.logger.info("Executing patches")
+        logger.info("Executing patches")
 
         val executedPatches = LinkedHashMap<String, ExecutedPatch>() // Key is name.
 
@@ -235,10 +243,10 @@ class Patcher(
         try {
             val file = File(resolverHintsFileName)
             if (!file.exists()) {
-                options.logger.info("Resolving classes without using a saved cache")
+                logger.info("Resolving classes without using a saved cache")
                 return
             }
-            options.logger.info("Resolving classes using existing cache")
+            logger.info("Resolving classes using existing cache")
 
             // Should remove entries for fingerprint classes that no longer exist
             // use Class.forName() on each key and see if it loads?
@@ -251,7 +259,7 @@ class Patcher(
             MethodFingerprint.fingerprintNameToMethodName.putAll(map)
 
         } catch (ioException: IOException) {
-            options.logger.error(ioException.toString())
+            logger.info(ioException.toString())
         }
     }
 
@@ -261,16 +269,16 @@ class Patcher(
             if (file.exists()) {
                 val updatedCacheEntries = MethodFingerprint.numberOfUpdatedFingerprintCacheEntries
                 if (updatedCacheEntries > 0) {
-                    options.logger.info("Updated $updatedCacheEntries fingerprint cache entries")
+                    logger.info("Updated $updatedCacheEntries fingerprint cache entries")
                 }
             } else {
-                options.logger.info("Saving resolver cache to file: $resolverHintsFileName")
+                logger.info("Saving resolver cache to file: $resolverHintsFileName")
             }
 
             val gson = GsonBuilder().setPrettyPrinting().create()
             file.writeText(gson.toJson(MethodFingerprint.fingerprintNameToMethodName.toSortedMap()))
         } catch (ex: IOException) {
-            options.logger.error(ex.toString())
+            logger.info(ex.toString())
         }
     }
 
