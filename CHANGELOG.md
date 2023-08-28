@@ -1,3 +1,44 @@
+## [14.2.1](https://github.com/ReVanced/revanced-patcher/compare/v14.2.0...v14.2.1) (2023-08-27)
+
+
+### Bug Fixes
+
+* do not flag resource table as sparse when main package is not loaded ([b832812](https://github.com/ReVanced/revanced-patcher/commit/b832812767a06ec6ec232291e6d14c8c2f14118c))
+
+## [14.2.1-dev.1](https://github.com/ReVanced/revanced-patcher/compare/v14.2.0...v14.2.1-dev.1) (2023-08-27)
+
+
+### Bug Fixes
+
+* do not flag resource table as sparse when main package is not loaded ([b832812](https://github.com/ReVanced/revanced-patcher/commit/b832812767a06ec6ec232291e6d14c8c2f14118c))
+
+# [14.2.0](https://github.com/ReVanced/revanced-patcher/compare/v14.1.0...v14.2.0) (2023-08-27)
+
+
+### Features
+
+* load patches in lexicographical order ([e8f2087](https://github.com/ReVanced/revanced-patcher/commit/e8f2087a6ffa6077fb3a6a69e29f3aec72e2fc1b))
+* log when merging integrations ([983563e](https://github.com/ReVanced/revanced-patcher/commit/983563efb6d7c8d289464b8bf71a016b8a735630))
+
+
+### Performance Improvements
+
+* compare types of classes ([55d6945](https://github.com/ReVanced/revanced-patcher/commit/55d694579ac2718b9e2c61ca5f38419c3775ef87))
+
+# [14.2.0-dev.3](https://github.com/ReVanced/revanced-patcher/compare/v14.2.0-dev.2...v14.2.0-dev.3) (2023-08-26)
+
+
+### Performance Improvements
+
+* compare types of classes ([55d6945](https://github.com/ReVanced/revanced-patcher/commit/55d694579ac2718b9e2c61ca5f38419c3775ef87))
+
+# [14.2.0-dev.2](https://github.com/ReVanced/revanced-patcher/compare/v14.2.0-dev.1...v14.2.0-dev.2) (2023-08-26)
+
+
+### Features
+
+* log when merging integrations ([983563e](https://github.com/ReVanced/revanced-patcher/commit/983563efb6d7c8d289464b8bf71a016b8a735630))
+
 # [14.2.0-dev.1](https://github.com/ReVanced/revanced-patcher/compare/v14.1.0...v14.2.0-dev.1) (2023-08-25)
 
 
