@@ -1,3 +1,53 @@
+# [15.0.0-dev.3](https://github.com/ReVanced/revanced-patcher/compare/v15.0.0-dev.2...v15.0.0-dev.3) (2023-09-06)
+
+
+### Bug Fixes
+
+* Make `CompatiblePackage.versions` a property ([67b7dff](https://github.com/ReVanced/revanced-patcher/commit/67b7dff67a212b4fc30eb4f0cbe58f0ba09fb09a))
+* Use correct module name ([080fbe9](https://github.com/ReVanced/revanced-patcher/commit/080fbe9feb9d4ea9ec4e599ecef296eacd803b05))
+
+
+* feat Use `Set` as super type for `PatchBundleLoader` ([4b76d19](https://github.com/ReVanced/revanced-patcher/commit/4b76d1959691babf8c99d3d5235df4a4388956f0))
+
+
+### BREAKING CHANGES
+
+* `PatchBundleLoader` is not a map anymore
+* This renames packages and the Maven package.
+
+# [15.0.0-dev.2](https://github.com/ReVanced/revanced-patcher/compare/v15.0.0-dev.1...v15.0.0-dev.2) (2023-09-06)
+
+# [15.0.0-dev.1](https://github.com/ReVanced/revanced-patcher/compare/v14.2.2...v15.0.0-dev.1) (2023-09-04)
+
+
+* feat!: Add patch annotation processor ([3fc6a13](https://github.com/ReVanced/revanced-patcher/commit/3fc6a139eef67237c116fb4e3e29bf9542d3a981))
+* feat!: Remove patch annotations ([3b4db3d](https://github.com/ReVanced/revanced-patcher/commit/3b4db3ddb72cdcee8af2f787eadf58eeb37543de))
+
+
+### Features
+
+* Add patch annotation processor ([#231](https://github.com/ReVanced/revanced-patcher/issues/231)) ([a29931f](https://github.com/ReVanced/revanced-patcher/commit/a29931f2ec0a666dba209b54855425d9dc2f4462))
+
+
+### BREAKING CHANGES
+
+* The manifest for patches has been removed, and the properties have been added to patches. Patches are now `OptionsContainer`. The `@Patch` annotation has been removed in favour of the `@Patch` annotation from the annotation processor.
+* Patch annotations have been removed. PatcherException is now thrown in various places. PatchBundleLoader is now a map of patches associated by their name. Patches are now instances.
+
+## [14.2.2](https://github.com/ReVanced/revanced-patcher/compare/v14.2.1...v14.2.2) (2023-08-30)
+
+
+### Bug Fixes
+
+* allow setting `DexClassLoader.optimizedDirectory` ([11a3378](https://github.com/ReVanced/revanced-patcher/commit/11a337865947a6ac74a63ebb3f3f9bc2610f7771))
+
+## [14.2.2-dev.1](https://github.com/ReVanced/revanced-patcher/compare/v14.2.1...v14.2.2-dev.1) (2023-08-29)
+
+
+### Bug Fixes
+
+* allow setting `DexClassLoader.optimizedDirectory` ([11a3378](https://github.com/ReVanced/revanced-patcher/commit/11a337865947a6ac74a63ebb3f3f9bc2610f7771))
+
 ## [14.2.1](https://github.com/ReVanced/revanced-patcher/compare/v14.2.0...v14.2.1) (2023-08-27)
 
 
