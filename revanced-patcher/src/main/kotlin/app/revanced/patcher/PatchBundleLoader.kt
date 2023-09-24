@@ -28,26 +28,30 @@ typealias PatchClass = KClass<out Patch<*>>
  *
  * @param getBinaryClassNames A function that returns the binary names of all classes in a patch bundle.
  * @param classLoader The [ClassLoader] to use for loading the classes.
+ * @param patchBundles A set of patches to initialize this instance with.
  */
 sealed class PatchBundleLoader private constructor(
     classLoader: ClassLoader,
     patchBundles: Array<out File>,
     getBinaryClassNames: (patchBundle: File) -> List<String>,
-) : PatchSet by mutableSetOf() {
+    // This constructor parameter is unfortunately necessary,
+    // so that a reference to the mutable set is present in the constructor to be able to add patches to it.
+    // because the instance itself is a PatchSet, which is immutable, that is delegated by the parameter.
+    private val patchSet: MutableSet<Patch<*>> = mutableSetOf()
+) : PatchSet by patchSet {
     private val logger = Logger.getLogger(PatchBundleLoader::class.java.name)
 
     init {
         patchBundles.flatMap(getBinaryClassNames).asSequence().map {
             classLoader.loadClass(it)
         }.filter {
-            it.isInstance(Patch::class.java)
+            Patch::class.java.isAssignableFrom(it)
         }.mapNotNull { patchClass ->
-            patchClass.getInstance(logger)
+            patchClass.getInstance(logger, silent = true)
         }.filter {
             it.name != null
         }.let { patches ->
-            @Suppress("UNCHECKED_CAST")
-            (this as MutableSet<Patch<*>>).addAll(patches)
+            patchSet.addAll(patches)
         }
     }
 
@@ -56,13 +60,14 @@ sealed class PatchBundleLoader private constructor(
          * Instantiates a [Patch]. If the class is a singleton, the INSTANCE field will be used.
          *
          * @param logger The [Logger] to use for logging.
+         * @param silent Whether to suppress logging.
          * @return The instantiated [Patch] or `null` if the [Patch] could not be instantiated.
          */
-        internal fun Class<*>.getInstance(logger: Logger): Patch<*>? {
+        internal fun Class<*>.getInstance(logger: Logger, silent: Boolean = false): Patch<*>? {
             return try {
                 getField("INSTANCE").get(null)
-            } catch (exception: NoSuchFileException) {
-                logger.fine(
+            } catch (exception: NoSuchFieldException) {
+                if (!silent) logger.fine(
                     "Patch class '${name}' has no INSTANCE field, therefor not a singleton. " +
                             "Will try to instantiate it."
                 )
@@ -70,7 +75,7 @@ sealed class PatchBundleLoader private constructor(
                 try {
                     getDeclaredConstructor().newInstance()
                 } catch (exception: Exception) {
-                    logger.severe(
+                    if (!silent) logger.severe(
                         "Patch class '${name}' is not singleton and has no suitable constructor, " +
                                 "therefor cannot be instantiated and will be ignored."
                     )

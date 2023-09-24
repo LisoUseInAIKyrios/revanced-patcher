@@ -5,7 +5,10 @@ import app.revanced.patcher.data.ResourceContext
 import app.revanced.patcher.patch.BytecodePatch
 import app.revanced.patcher.patch.ResourcePatch
 import app.revanced.patcher.patch.annotation.Patch
-import com.google.devtools.ksp.processing.*
+import com.google.devtools.ksp.processing.CodeGenerator
+import com.google.devtools.ksp.processing.Dependencies
+import com.google.devtools.ksp.processing.Resolver
+import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
@@ -16,9 +19,8 @@ import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.writeTo
 import kotlin.reflect.KClass
 
-class PatchProcessor(
+class PatchProcessor internal constructor(
     private val codeGenerator: CodeGenerator,
-    private val logger: KSPLogger
 ) : SymbolProcessor {
 
     private fun KSAnnotated.isSubclassOf(cls: KClass<*>): Boolean {
@@ -31,7 +33,7 @@ class PatchProcessor(
 
     @Suppress("UNCHECKED_CAST")
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        val executablePatches = buildMap {
+        val patches = buildMap {
             resolver.getSymbolsWithAnnotation(Patch::class.qualifiedName!!).filter {
                 // Do not check here if Patch is super of the class, because it is expensive.
                 // Check it later when processing.
@@ -79,14 +81,14 @@ class PatchProcessor(
                         dependencies?.map { dependency -> dependency.toClassName() },
                         compatiblePackages?.map {
                             val packageName = it.property("name")
-                            val packageVersions = (it.property("versions") as List<String>)
-                                .joinToString(", ") { version -> "\"$version\"" }
+                            val packageVersions = (it.property("versions") as List<String>).ifEmpty { null }
+                                ?.joinToString(", ") { version -> "\"$version\"" }
 
                             CodeBlock.of(
-                                "%T(%S, setOf(%L))",
+                                "%T(%S, %L)",
                                 app.revanced.patcher.patch.Patch.CompatiblePackage::class,
                                 packageName,
-                                packageVersions
+                                packageVersions?.let { "setOf($packageVersions)" },
                             )
                         },
                         use,
@@ -97,13 +99,13 @@ class PatchProcessor(
         }
 
         // If a patch depends on another, that is annotated, the dependency should be replaced with the generated patch,
-        // because the generated patch has all the necessary properties to invoke the super constructor,
+        // because the generated patch has all the necessary properties to invoke the super constructor with,
         // unlike the annotated patch.
         val dependencyResolutionMap = buildMap {
-            executablePatches.values.filter { it.dependencies != null }.flatMap {
+            patches.values.filter { it.dependencies != null }.flatMap {
                 it.dependencies!!
             }.distinct().forEach { dependency ->
-                executablePatches.keys.find { it.qualifiedName?.asString() == dependency.toString() }
+                patches.keys.find { it.qualifiedName?.asString() == dependency.toString() }
                     ?.let { patch ->
                         this[dependency] = ClassName(
                             patch.packageName.asString(),
@@ -113,7 +115,7 @@ class PatchProcessor(
             }
         }
 
-        executablePatches.forEach { (patchDeclaration, patchAnnotation) ->
+        patches.forEach { (patchDeclaration, patchAnnotation) ->
             val isBytecodePatch = patchDeclaration.isSubclassOf(BytecodePatch::class)
 
             val superClass = if (isBytecodePatch) {
@@ -152,18 +154,18 @@ class PatchProcessor(
                                 )
                             }
 
-                            patchAnnotation.dependencies?.let { dependencies ->
-                                addSuperclassConstructorParameter(
-                                    "dependencies = setOf(%L)",
-                                    buildList {
-                                        addAll(dependencies)
-                                        // Also add the source class of the generated class so that it is also executed.
-                                        add(patchDeclaration.toClassName())
-                                    }.joinToString(", ") { dependency ->
-                                        "${(dependencyResolutionMap[dependency] ?: dependency)}::class"
+                            // The generated patch always depends on the source patch.
+                            addSuperclassConstructorParameter(
+                                "dependencies = setOf(%L)",
+                                buildList {
+                                    patchAnnotation.dependencies?.forEach { dependency ->
+                                        add("${(dependencyResolutionMap[dependency] ?: dependency)}::class")
                                     }
-                                )
-                            }
+
+                                    add("${patchDeclaration.toClassName()}::class")
+                                }.joinToString(", "),
+                            )
+
                             addSuperclassConstructorParameter(
                                 "use = %L", patchAnnotation.use
                             )
@@ -182,7 +184,7 @@ class PatchProcessor(
                         .addInitializerBlock(
                             CodeBlock.builder()
                                 .add(
-                                    "%T.options.forEach { (key, option) ->",
+                                    "%T.options.forEach { (_, option) ->",
                                     patchDeclaration.toClassName()
                                 )
                                 .addStatement(

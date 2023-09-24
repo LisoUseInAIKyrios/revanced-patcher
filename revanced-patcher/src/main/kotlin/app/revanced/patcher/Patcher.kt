@@ -17,8 +17,6 @@ import java.io.Closeable
 import java.io.File
 import java.io.IOException
 import java.util.function.Supplier
-import java.util.logging.Level
-import java.util.logging.LogManager
 import java.util.logging.Logger
 
 /**
@@ -41,18 +39,6 @@ class Patcher(
     val context = PatcherContext(options)
 
     init {
-        LogManager.getLogManager().let { manager ->
-            // Disable root logger.
-            manager.getLogger("").level = Level.OFF
-
-            // Enable ReVanced logging only.
-            manager.loggerNames
-                .toList()
-                .filter { it.startsWith("app.revanced") }
-                .map { manager.getLogger(it) }
-                .forEach { it.level = Level.INFO }
-        }
-
         // load optional resolver hints
         loadCachedResolverHints()
 
@@ -88,7 +74,7 @@ class Patcher(
         }
 
         // Add all patches and their dependencies to the context.
-        for (patch in patches) context.executablePatches.putIfAbsent(patch::class, patch) ?: {
+        for (patch in patches) context.executablePatches.putIfAbsent(patch::class, patch) ?: run {
             context.allPatches[patch::class] = patch
 
             patch.dependencies?.forEach { it.putDependenciesRecursively() }
@@ -167,7 +153,7 @@ class Patcher(
             patch: Patch<*>,
             executedPatches: LinkedHashMap<Patch<*>, PatchResult>
         ): PatchResult {
-            val patchName = patch.name
+            val patchName = patch.name ?: patch.toString()
 
             executedPatches[patch]?.let { patchResult ->
                 patchResult.exception ?: return patchResult
@@ -178,14 +164,17 @@ class Patcher(
             }
 
             // Recursively execute all dependency patches.
-            patch.dependencies?.forEach { dependencyName ->
-                val dependency = context.executablePatches[dependencyName]!!
+            patch.dependencies?.forEach { dependencyClass ->
+                val dependency = context.allPatches[dependencyClass]!!
                 val result = executePatch(dependency, executedPatches)
 
                 result.exception?.let {
                     return PatchResult(
                         patch,
-                        PatchException("'$patchName' depends on '${dependency}' that raised an exception: $it")
+                        PatchException(
+                            "'$patchName' depends on '${dependency.name ?: dependency}' " +
+                                    "that raised an exception:\n${it.stackTraceToString()}"
+                        )
                     )
                 }
             }
@@ -194,7 +183,7 @@ class Patcher(
                 // TODO: Implement this in a more polymorphic way.
                 when (patch) {
                     is BytecodePatch -> {
-                        patch.fingerprints.toList().resolveUsingLookupMap(context.bytecodeContext)
+                        patch.fingerprints.resolveUsingLookupMap(context.bytecodeContext)
                         patch.execute(context.bytecodeContext)
                     }
                     is ResourcePatch -> {
@@ -222,7 +211,7 @@ class Patcher(
 
         val executedPatches = LinkedHashMap<Patch<*>, PatchResult>() // Key is name.
 
-        context.executablePatches.map { it.value }.sortedBy { it.name }.forEach { patch ->
+        context.executablePatches.values.sortedBy { it.name }.forEach { patch ->
             val patchResult = executePatch(patch, executedPatches)
 
             // If the patch failed, emit the result, even if it is closeable.
@@ -261,7 +250,7 @@ class Patcher(
                         PatchResult(
                             patch,
                             PatchException(
-                                "'${patch.name}' raised an exception while being closed: $it",
+                                "'${patch.name}' raised an exception while being closed: ${it.stackTraceToString()}",
                                 result.exception
                             )
                         )
