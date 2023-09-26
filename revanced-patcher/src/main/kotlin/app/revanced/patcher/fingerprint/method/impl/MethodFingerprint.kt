@@ -169,9 +169,6 @@ abstract class MethodFingerprint(
             forEach { fingerprint ->
                 fingerprint.resolveUsingLookupMap(context)
             }
-            for (fingerprint in this) {
-                fingerprint.resolveUsingLookupMap(context)
-            }
         }
 
         /**
