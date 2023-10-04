@@ -1,3 +1,48 @@
+# [16.0.0](https://github.com/ReVanced/revanced-patcher/compare/v15.0.3...v16.0.0) (2023-10-04)
+
+
+### Bug Fixes
+
+* Use correct super class type ([f590436](https://github.com/ReVanced/revanced-patcher/commit/f590436399f6385c51cea54618251b5d823c31f9))
+
+
+### BREAKING CHANGES
+
+* This changes the super classes of some `PatchOptionException` classes
+
+# [16.0.0-dev.1](https://github.com/ReVanced/revanced-patcher/compare/v15.0.3...v16.0.0-dev.1) (2023-10-04)
+
+
+### Bug Fixes
+
+* Use correct super class type ([f590436](https://github.com/ReVanced/revanced-patcher/commit/f590436399f6385c51cea54618251b5d823c31f9))
+
+
+### BREAKING CHANGES
+
+* This changes the super classes of some `PatchOptionException` classes
+
+## [15.0.3](https://github.com/ReVanced/revanced-patcher/compare/v15.0.2...v15.0.3) (2023-10-01)
+
+
+### Bug Fixes
+
+* Fix SMALI compilation on devices with RTL language ([#242](https://github.com/ReVanced/revanced-patcher/issues/242)) ([356f1f1](https://github.com/ReVanced/revanced-patcher/commit/356f1f155348347a8f318a2e024716ebf4fec99b))
+
+## [15.0.3-dev.1](https://github.com/ReVanced/revanced-patcher/compare/v15.0.2...v15.0.3-dev.1) (2023-09-29)
+
+
+### Bug Fixes
+
+* Fix SMALI compilation on devices with RTL language ([#242](https://github.com/ReVanced/revanced-patcher/issues/242)) ([356f1f1](https://github.com/ReVanced/revanced-patcher/commit/356f1f155348347a8f318a2e024716ebf4fec99b))
+
+## [15.0.2](https://github.com/ReVanced/revanced-patcher/compare/v15.0.1...v15.0.2) (2023-09-27)
+
+
+### Performance Improvements
+
+* Do not unnecessary resolve fingeprints twice ([#241](https://github.com/ReVanced/revanced-patcher/issues/241)) ([4d6e08a](https://github.com/ReVanced/revanced-patcher/commit/4d6e08a650dde6ec2e18611c5db1ab92b9a61dd1))
+
 ## [15.0.2-dev.1](https://github.com/ReVanced/revanced-patcher/compare/v15.0.1...v15.0.2-dev.1) (2023-09-26)
 
 
